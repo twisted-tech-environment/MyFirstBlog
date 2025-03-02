@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Futurista</title>
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000;
+            color: #c0c0c0;
+            font-family: 'Arial', sans-serif;
+            overflow-x: hidden;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+        }
+
+        .blog-header {
+            text-align: center;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #c0c0c0;
+        }
+
+        .content-section {
+            background: rgba(25, 25, 25, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid #333;
+        }
+
+        .image-upload {
+            text-align: center;
+            padding: 2rem;
+            border: 2px dashed #444;
+            border-radius: 15px;
+            margin: 2rem 0;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+
+        .gallery-item:hover {
+            transform: scale(1.03);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(200, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: rgba(255, 0, 0, 0.9);
+        }
+
+        .comment-section {
+            margin-top: 2rem;
+        }
+
+        .comment {
+            background: rgba(40, 40, 40, 0.8);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border-left: 3px solid #c0c0c0;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: rgba(50, 50, 50, 0.8);
+            border: 1px solid #444;
+            color: #c0c0c0;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #c0c0c0;
+            outline: none;
+        }
+
+        button {
+            background: #333;
+            color: #c0c0c0;
+            border: 1px solid #444;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #444;
+            border-color: #c0c0c0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .gallery {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    
+    <div class="container">
+        <header class="blog-header">
+            <h1>Blog Jean Paul</h1>
+            <p>Comparte tus ideas e imágenes</p>
+        </header>
+
+        <section class="content-section image-upload">
+            <input type="file" id="imageInput" accept="image/*" hidden>
+            <button onclick="document.getElementById('imageInput').click()">Subir Imagen</button>
+            <div class="gallery" id="imageGallery"></div>
+        </section>
+
+        <section class="content-section comment-section">
+            <h2>Comentarios</h2>
+            <div id="commentsContainer"></div>
+            
+            <div>
+                <input type="text" id="userName" placeholder="Tu nombre">
+                <textarea id="commentInput" placeholder="Escribe tu comentario..." rows="3"></textarea>
+                <button onclick="addComment()">Publicar Comentario</button>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Configuración de partículas
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 80 },
+                color: { value: '#c0c0c0' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.2 },
+                size: { value: 3 },
+                move: {
+                    enable: true,
+                    speed: 2,
+                    direction: 'none',
+                    random: false,
+                    straight: false,
+                    out_mode: 'out',
+                    bounce: false
+                }
+            },
+            interactivity: {
+                detect_on: 'canvas',
+                events: {
+                    onhover: { enable: true, mode: 'repulse' },
+                    onclick: { enable: true, mode: 'push' },
+                    resize: true
+                }
+            },
+            retina_detect: true
+        });
+
+        // Almacenamiento local
+        let comments = JSON.parse(localStorage.getItem('comments')) || [];
+        let images = JSON.parse(localStorage.getItem('images')) || [];
+
+        // Cargar contenido inicial
+        document.addEventListener('DOMContentLoaded', () => {
+            loadComments();
+            loadImages();
+        });
+
+        // Manejo de imágenes
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    images.push(event.target.result);
+                    localStorage.setItem('images', JSON.stringify(images));
+                    loadImages();
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function loadImages() {
+            const gallery = document.getElementById('imageGallery');
+            gallery.innerHTML = '';
+            
+            images.forEach((image, index) => {
+                const container = document.createElement('div');
+                container.className = 'gallery-item';
+                
+                const img = document.createElement('img');
+                img.src = image;
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.textContent = '×';
+                deleteBtn.onclick = () => deleteImage(index);
+                
+                container.appendChild(img);
+                container.appendChild(deleteBtn);
+                gallery.appendChild(container);
+            });
+        }
+
+        function deleteImage(index) {
+            images.splice(index, 1);
+            localStorage.setItem('images', JSON.stringify(images));
+            loadImages();
+        }
+
+        // Sistema de comentarios
+        function addComment() {
+            const userName = document.getElementById('userName').value;
+            const commentText = document.getElementById('commentInput').value;
+            
+            if (userName && commentText) {
+                const comment = {
+                    user: userName,
+                    text: commentText,
+                    date: new Date().toLocaleString()
+                };
+                
+                comments.push(comment);
+                localStorage.setItem('comments', JSON.stringify(comments));
+                loadComments();
+                document.getElementById('userName').value = '';
+                document.getElementById('commentInput').value = '';
+            }
+        }
+
+        function loadComments() {
+            const container = document.getElementById('commentsContainer');
+            container.innerHTML = '';
+            
+            comments.forEach(comment => {
+                const div = document.createElement('div');
+                div.className = 'comment';
+                div.innerHTML = `
+                    <strong>${comment.user}</strong>
+                    <p>${comment.text}</p>
+                    <small>${comment.date}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Enviar con Enter
+        document.getElementById('commentInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                addComment();
+            }
+        });
+    </script>
+</body>
+</html>
